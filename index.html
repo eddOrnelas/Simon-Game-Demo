@@ -1,0 +1,72 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="UTF-8" />
+        <title>Sliding Puzzle Game</title>
+        <script src="js/phaser.min.js"></script>
+        <style type="text/css">
+            canvas{
+                width:100%;
+                height:100%;
+            }
+            
+            body{
+                padding: 0px;
+                margin: 0;
+            }
+        </style>
+    </head>
+    <body>
+
+<script type="text/javascript">
+
+//Game settings
+var game;
+var gameWidth = 600;
+var gameHeight = 900;
+var gameState;
+
+//sound
+
+
+//images
+var background;
+
+
+//Objects
+
+//Other settings
+
+
+//var solveClicked = function() {};
+
+window.onload = function() {
+
+    //init game object and and disable antialiasing with last params
+    //new Game(width, height, renderer, parent, state, transparent, antialias, physicsConfig)
+    game = new Phaser.Game(gameWidth, gameHeight, Phaser.AUTO, '', { preload: preload, create: create, update: update, render:render }, true, false);
+    
+    function preload () {
+
+    }
+    
+    function create () {
+
+    }
+    
+    
+    function update () {
+
+    }
+    
+
+    function render() {
+
+    }
+    
+    
+};
+</script>
+
+    </body>
+</html>
