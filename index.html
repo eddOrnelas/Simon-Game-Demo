@@ -2,7 +2,7 @@
 <html>
     <head>
         <meta charset="UTF-8" />
-        <title>Sliding Puzzle Game</title>
+        <title>Simon Game</title>
         <script src="js/phaser.min.js"></script>
         <style type="text/css">
             canvas{
@@ -22,23 +22,48 @@
 
 //Game settings
 var game;
-var gameWidth = 600;
-var gameHeight = 900;
-var gameState;
+var gameWidth = 500;
+var gameHeight = 700;
 
 //sound
-
+var sfx;
 
 //images
 var background;
 
 
 //Objects
+var boxButtons;
+var box1Button;
+var box2Button;
+var box3Button;
+var box4Button;
+var uiButtons;
+var startButton;
+var resetButton;
+var stateText;
+var levelText;
 
 //Other settings
+var gameState;
+var playerState;
+var buttonPressed;
+var buttonsPressed = [];
+var cpuState;
+var level = 1;
+var lightPatterns = [];
+var boxButtonList = [];
+var fxs;
 
 
-//var solveClicked = function() {};
+var beepSounds = [];
+
+var minWaitTime = 300;
+var waitTime= 800;
+var turnWaitTime = 750;
+var waitTimeRemove = 100;
+var lightDuration = 1000;
+
 
 window.onload = function() {
 
@@ -47,21 +72,302 @@ window.onload = function() {
     game = new Phaser.Game(gameWidth, gameHeight, Phaser.AUTO, '', { preload: preload, create: create, update: update, render:render }, true, false);
     
     function preload () {
-
+        
+        //Backgrounds
+        game.load.image('background', 'img/brushed-metal-texture-background.jpg');
+        
+        
+        //Music
+        //game.load.audio('game_music', 'music/beach.mp3');
+        
+        //Sounds
+        game.load.audio('beep1', 'sound/sound01.wav');
+        game.load.audio('beep2', 'sound/sound02.wav');
+        game.load.audio('beep3', 'sound/sound03.wav');
+        game.load.audio('beep4', 'sound/sound04.wav');
+        
+        //Sprites
+        game.load.image('box1', 'img/box1.png');
+        game.load.image('box1glow', 'img/box1glow.png');
+        game.load.image('box2', 'img/box2.png');
+        game.load.image('box2glow', 'img/box2glow.png');
+        game.load.image('box3', 'img/box3.png');
+        game.load.image('box3glow', 'img/box3glow.png');
+        game.load.image('box4', 'img/box4.png');
+        game.load.image('box4glow', 'img/box4glow.png');
+        game.load.image('start', 'img/start.png');
+        game.load.image('reset', 'img/reset.png');
+        
+        
     }
     
+    
     function create () {
-
+        
+        initGame();
+        
+    }
+    
+    
+    function initGame(){
+        
+        level = 1;
+        
+        //background
+        background = game.add.sprite(0, 0, 'background');
+        background.scale.setTo( game.world.width/background.width , game.world.height/background.height);
+        
+        //Create sprite groups
+        boxButtons = game.add.group();
+        uiButtons = game.add.group();
+        boxButtonList = [];
+        
+        
+        
+        //Create Sprites
+        box1Button = boxButtons.create(15, 50, 'box1');
+        box1Button.inputEnabled = true;
+        box1Button.events.onInputDown.add(buttonTouched, this);
+        box1Button.events.onInputUp.add(buttonUnTouched, this);
+        box1Button.number = 1;
+        boxButtonList.push(box1Button);
+        
+        box2Button = boxButtons.create(300, 50, 'box2');
+        box2Button.inputEnabled = true;
+        box2Button.events.onInputDown.add(buttonTouched, this);
+        box2Button.events.onInputUp.add(buttonUnTouched, this);
+        box2Button.number = 2;
+        boxButtonList.push(box2Button);
+        
+        box3Button = boxButtons.create(15, 300, 'box3');
+        box3Button.inputEnabled = true;
+        box3Button.events.onInputDown.add(buttonTouched, this);
+        box3Button.events.onInputUp.add(buttonUnTouched, this);
+        box3Button.number = 3;
+        boxButtonList.push(box3Button);
+        
+        box4Button = boxButtons.create(300, 300, 'box4');
+        box4Button.inputEnabled = true;
+        box4Button.events.onInputDown.add(buttonTouched, this);
+        box4Button.events.onInputUp.add(buttonUnTouched, this);
+        box4Button.number = 4;
+        boxButtonList.push(box4Button);
+        
+        for(x=0; x<4; x++){
+            beepSounds.push(game.add.audio('beep'+(x+1)));
+            beepSounds[x].loop = true;
+        }
+        
+        //Create UI Buttons
+        startButton = boxButtons.create( ( (gameWidth/4) ), gameHeight-150, 'start');
+        startButton.inputEnabled = true;
+        //uiButtons.events.onInputDown.add(buttonTouched, this);
+        startButton.events.onInputUp.add(buttonStartTouched, this);
+        
+        resetButton = boxButtons.create( ( (gameWidth/4) ), gameHeight-150, 'reset');
+        resetButton.inputEnabled = true;
+        //uiButtons.events.onInputDown.add(buttonTouched, this);
+        resetButton.events.onInputUp.add(buttonResetTouched, this);
+        resetButton.alpha = 0;
+        resetButton.inputEnabled = false;
+        
+        
+        //texts
+        var stateStyle = {
+            align: "center",
+            font: "bold 32px Arial",
+            fill: "#f00",
+        };
+        stateText = game.add.text(gameWidth/2, gameHeight-170, '', stateStyle);
+        stateText.fill = "#F00";
+        stateText.setShadow(3, 3, 'rgba(0,0,0,0.3)', 2);
+        //stateText.setTextBounds(0, 0, gameWidth, 0);
+        stateText.anchor.setTo(0.5);
+        
+        
+        var levelStyle = {
+            align: "center",
+            font: "bold 32px Arial",
+            fill: "#f00",
+        };
+        levelText = game.add.text(gameWidth/2, 25, 'Level: '+ level, levelStyle);
+        levelText.fill = "#FFF";
+        levelText.setShadow(3, 3, 'rgba(0,0,0,0.3)', 2);
+        levelText.anchor.setTo(0.5);
+        
+        
+        playerState = "nothing";
+        gameState = "initial";
+        buttonPressed = 0;
+        buttonsPressed = [];
+        lightPatterns = [];
+        
+    }
+    
+    
+    function startGame(){
+        playerState = "nothing";
+        gameState = "cpuTurn";
+        cpuState = "addLight";
+        stateText.setText("Remember This");
     }
     
     
     function update () {
-
+        
+        if(gameState === "cpuTurn"){
+            cpuplay();
+        }
+        
+        if(gameState === "playerTurn"){
+            
+        }
+        
     }
     
 
     function render() {
 
+    }
+    
+    
+    
+    /* Events */
+    function buttonTouched(buttonSprite){
+        if(playerState === "touching" || gameState !== "playerTurn"){
+            return false;
+        }
+        playerState = "touching";
+        buttonPressed = buttonSprite.number;
+        buttonLightUp(buttonSprite.number-1);
+    }
+    
+    function buttonUnTouched(buttonSprite){
+        if(playerState == "untouching" || gameState !== "playerTurn" || buttonPressed !== buttonSprite.number){
+            return false;
+        }
+        playerState = "untouching";
+        buttonPressed = 0;
+        buttonLightDown(buttonSprite.number-1);
+        checkPattern(buttonSprite.number);
+    }
+    
+    function buttonStartTouched(buttonSprite){
+        
+        if(playerState !== "nothing" && gameState !== "initial"){
+            return false;
+        }
+        
+        buttonSprite.disable = true;
+        buttonSprite.destroy();
+        startGame();
+    }
+    
+    function buttonResetTouched(){
+        game.state.start(game.state.current);
+    }
+    
+    
+    
+    /* Game Logic */
+    function cpuplay(){
+        
+        stateText.setText("Remember This");
+        stateText.fill = "#F00";
+        
+        if(cpuState == "addLight"){
+            randNumber = Math.floor((Math.random() * 4) + 1) - 1;
+            lightPatterns.push(randNumber);
+            cpuState = "turnOnLights";
+        }
+        
+        
+        if(cpuState === "turnOnLights"){
+            cpuState = "turningLights";
+            var lightPatternsTemp = lightPatterns.slice(0);
+            
+            waitTime = waitTime - waitTimeRemove;
+            if(waitTime < minWaitTime){
+                waitTime = minWaitTime;
+            }
+            
+            setTimeout(function(){
+                 turnOnLightsRecursive(lightPatternsTemp, waitTime);
+            }, turnWaitTime);
+        }
+        
+    }
+    
+    function buttonLightUp(lightNumber){
+        var buttonSprite = boxButtonList[lightNumber];
+        
+        beepSounds[buttonSprite.number-1].play();
+        boxButtons.children[buttonSprite.number-1].loadTexture("box"+buttonSprite.number+"glow");
+        
+    }
+    
+    function buttonLightDown(lightNumber){
+        var buttonSprite = boxButtonList[lightNumber];
+        
+        boxButtons.children[buttonSprite.number-1].loadTexture("box"+buttonSprite.number);
+        beepSounds[buttonSprite.number-1].stop();
+        
+    }
+    
+    function turnOnLightsRecursive(lightList, waitTime){
+        var lightNumber = lightList[0];
+        var lightList = lightList.splice(1,lightList.length-1);
+        
+        console.log("New Light List", lightList);
+        
+        buttonLightUp(lightNumber);
+        
+        var light = boxButtonList[lightNumber];
+        
+        var tween = game.add.tween(light);
+        tween.to({}, waitTime, "Linear");
+        tween.onComplete.add(function(){
+
+            buttonLightDown(lightNumber);
+            if(lightList.length > 0){
+                
+            setTimeout(function () {
+                turnOnLightsRecursive(lightList, waitTime);
+            },100);
+            }else{
+                gameState = "playerTurn";
+                cpuState = "nothing";
+                playerState = "starts";
+                
+                stateText.setText("You Turn");
+                stateText.fill = "#0F0";
+            }
+                
+        }, this);
+        tween.start();
+    }
+    
+    function checkPattern(number){
+        buttonsPressed.push(number);
+        
+        if(lightPatterns[buttonsPressed.length-1] !== (number-1)){
+            gameState = "gameOver";
+            stateText.setText("Game Over");
+            stateText.fill = "#F00";
+            resetButton.inputEnabled = true;
+            resetButton.alpha = 1;
+        }else{
+            //continue
+        }
+        
+        if(gameState !== "gameOver" && lightPatterns.length === buttonsPressed.length){
+            buttonsPressed = [];
+            gameState = "cpuTurn";
+            cpuState = "addLight";
+            level += 1;
+            levelText.setText("Level: "+level);
+        }
+        
     }
     
     
