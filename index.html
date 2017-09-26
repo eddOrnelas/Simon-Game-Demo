@@ -234,7 +234,7 @@ window.onload = function() {
     
     /* Events */
     function buttonTouched(buttonSprite){
-        if(playerState === "touching" || gameState !== "playerTurn"){
+        if(playerState === "touching" || gameState !== "playerTurn" || playerState == "released"){
             return false;
         }
         playerState = "touching";
@@ -243,13 +243,19 @@ window.onload = function() {
     }
     
     function buttonUnTouched(buttonSprite){
-        if(playerState == "untouching" || gameState !== "playerTurn" || buttonPressed !== buttonSprite.number){
+        if(playerState === "released" || playerState === "untouching" || gameState !== "playerTurn" || buttonPressed !== buttonSprite.number){
             return false;
         }
-        playerState = "untouching";
-        buttonPressed = 0;
-        buttonLightDown(buttonSprite.number-1);
-        checkPattern(buttonSprite.number);
+        
+         playerState = "released";
+        
+        setTimeout(function(){
+            playerState = "untouching";
+            buttonPressed = 0;
+            buttonLightDown(buttonSprite.number-1);
+            checkPattern(buttonSprite.number);
+        },100);
+        
     }
     
     function buttonStartTouched(buttonSprite){
